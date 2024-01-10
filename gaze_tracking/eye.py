@@ -19,7 +19,8 @@ class Eye(object):
         self.center = None
         self.pupil = None
         self.landmark_points = None
-
+        self.lefteys = []
+        self.righteyes = []
         self._analyze(original_frame, landmarks, side, calibration)
 
     @staticmethod
@@ -62,9 +63,11 @@ class Eye(object):
 
         self.frame = eye[min_y:max_y, min_x:max_x]
         self.origin = (min_x, min_y)
-
+        cv2.imwrite("ioslate.jpg",self.frame)
+        
         height, width = self.frame.shape[:2]
         self.center = (width / 2, height / 2)
+        print(f"self.origin:{self.origin},height:{height},width:{width},self.center:{self.center}")
 
     def _blinking_ratio(self, landmarks, points):
         """Calculates a ratio that can indicate whether an eye is closed or not.
@@ -81,10 +84,30 @@ class Eye(object):
         right = (landmarks.part(points[3]).x, landmarks.part(points[3]).y)
         top = self._middle_point(landmarks.part(points[1]), landmarks.part(points[2]))
         bottom = self._middle_point(landmarks.part(points[5]), landmarks.part(points[4]))
-
+    
         eye_width = math.hypot((left[0] - right[0]), (left[1] - right[1]))
         eye_height = math.hypot((top[0] - bottom[0]), (top[1] - bottom[1]))
 
+        print(f"landmarks.part(points[0]).x",landmarks.part(points[0]).x)
+        print(f"landmarks.part(points[0]).y",landmarks.part(points[0]).y)
+
+        print(f"landmarks.part(points[1]).x",landmarks.part(points[1]).x)
+        print(f"landmarks.part(points[1]).y",landmarks.part(points[1]).y)
+
+        print(f"landmarks.part(points[2]).x",landmarks.part(points[2]).x)
+        print(f"landmarks.part(points[2]).y",landmarks.part(points[2]).y)
+
+        print(f"landmarks.part(points[3]).x",landmarks.part(points[3]).x)
+        print(f"landmarks.part(points[3]).y",landmarks.part(points[3]).y)
+        
+        print(f"landmarks.part(points[4]).x",landmarks.part(points[4]).x)
+        print(f"landmarks.part(points[4]).y",landmarks.part(points[4]).y)
+
+        print(f"landmarks.part(points[5]).x",landmarks.part(points[5]).x)
+        print(f"landmarks.part(points[5]).y",landmarks.part(points[5]).y)
+
+        
+        
         try:
             ratio = eye_width / eye_height
         except ZeroDivisionError:
@@ -108,12 +131,29 @@ class Eye(object):
             points = self.RIGHT_EYE_POINTS
         else:
             return
-
+        print(f"side,{side},points",points)
         self.blinking = self._blinking_ratio(landmarks, points)
-        self._isolate(original_frame, landmarks, points)
 
+
+        for i in range(6):
+            pt_pos = (landmarks.part(points[i]).x,landmarks.part(points[i]).y)
+            if side == 0:
+                self.lefteys.append(pt_pos)
+            elif side == 1:
+                self.righteyes.append(pt_pos)
+
+        
+        self._isolate(original_frame, landmarks, points)
+        if side == 0:
+            cv2.imwrite("ioslate-left.jpg",self.frame)
+        elif side == 1:
+            cv2.imwrite("ioslate-right.jpg",self.frame)
+            
         if not calibration.is_complete():
             calibration.evaluate(self.frame, side)
 
         threshold = calibration.threshold(side)
-        self.pupil = Pupil(self.frame, threshold)
+        self.pupil = Pupil(self.frame, threshold,side)
+
+        
+        
